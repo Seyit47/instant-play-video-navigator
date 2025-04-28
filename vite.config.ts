@@ -1,37 +1,29 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
+import { readFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [
-    tailwindcss(),
-    reactRouter(),
-    tsconfigPaths(),
     {
       name: "copy-sw",
       generateBundle() {
         this.emitFile({
           type: "asset",
-          fileName: "video-sw.js",
-          source: require("fs").readFileSync(
-            resolve(__dirname, "video-sw.js"),
+          fileName: "service-worker.js",
+          source: readFileSync(
+            resolve(__dirname, "service-worker.js"),
             "utf-8"
           ),
         });
       },
     },
+    tailwindcss(),
+    reactRouter(),
+    tsconfigPaths(),
   ],
-
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, "index.html"),
-        sw: resolve(__dirname, "video-sw.js"),
-      },
-    },
-  },
 
   server: {
     headers: {
