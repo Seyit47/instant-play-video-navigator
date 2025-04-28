@@ -47,7 +47,7 @@ export default function App() {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
-        navigator.serviceWorker.register("/service-worker.js");
+        navigator.serviceWorker.register("/video-sw.js");
       });
     }
   }, []);

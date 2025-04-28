@@ -13,11 +13,8 @@ export default defineConfig({
       generateBundle() {
         this.emitFile({
           type: "asset",
-          fileName: "service-worker.js",
-          source: readFileSync(
-            resolve(__dirname, "service-worker.js"),
-            "utf-8"
-          ),
+          fileName: "video-sw.js",
+          source: readFileSync(resolve(__dirname, "video-sw.js"), "utf-8"),
         });
       },
     },
