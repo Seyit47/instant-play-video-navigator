@@ -20,6 +20,7 @@
     "video.js": "^8.22.0"
   },
   "devDependencies": {
+    "@netlify/vite-plugin-react-router": "^1.0.1",
     "@react-router/dev": "^7.5.2",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^20",

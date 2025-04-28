@@ -4,6 +4,7 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import netlifyPlugin from "@netlify/vite-plugin-react-router";
 
 export default defineConfig({
   plugins: [
@@ -23,6 +24,7 @@ export default defineConfig({
     tailwindcss(),
     reactRouter(),
     tsconfigPaths(),
+    netlifyPlugin(),
   ],
 
   server: {
