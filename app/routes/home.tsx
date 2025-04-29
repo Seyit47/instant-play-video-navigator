@@ -3,7 +3,7 @@ import { useVideo } from "../context/VideoContext";
 import { useNavigate } from "react-router";
 
 const Landing: React.FC = () => {
-  const { loadVideos, loadingProgress, allVideosLoaded } = useVideo();
+  const { loadVideos, loadingProgress, allVideosLoaded, canStart } = useVideo();
   const navigate = useNavigate();
 
   const handleStart = async () => {
@@ -11,10 +11,10 @@ const Landing: React.FC = () => {
   };
 
   useEffect(() => {
-    if (allVideosLoaded) {
+    if (canStart) {
       navigate("/player");
     }
-  }, [allVideosLoaded, navigate]);
+  }, [canStart, navigate]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-900 text-white">

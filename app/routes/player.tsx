@@ -3,16 +3,21 @@ import { useVideo } from "../context/VideoContext";
 import { useNavigate } from "react-router";
 
 const Player: React.FC = () => {
-  const { videos, currentVideoIndex, setCurrentVideoIndex, allVideosLoaded } =
-    useVideo();
+  const {
+    videos,
+    currentVideoIndex,
+    setCurrentVideoIndex,
+    allVideosLoaded,
+    canStart,
+  } = useVideo();
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!allVideosLoaded) {
+    if (!canStart) {
       navigate("/");
     }
-  }, [allVideosLoaded, navigate]);
+  }, [canStart, navigate]);
 
   const goToNextVideo = () => {
     const nextIndex = (currentVideoIndex + 1) % videos.length;
@@ -47,7 +52,7 @@ const Player: React.FC = () => {
     };
   }, [currentVideoIndex]);
 
-  if (!allVideosLoaded || videos.length === 0) {
+  if (!canStart || videos.length === 0) {
     return (
       <div className="flex justify-center items-center h-screen">
         Loading...

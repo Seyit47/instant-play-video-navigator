@@ -1,4 +1,10 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 import type { Video } from "../types";
 import { videoSources } from "~/constants";
 
@@ -7,6 +13,7 @@ interface VideoContextType {
   currentVideoIndex: number;
   loadingProgress: number;
   allVideosLoaded: boolean;
+  canStart: boolean;
   setCurrentVideoIndex: (index: number) => void;
   loadVideos: () => Promise<void>;
 }
@@ -27,11 +34,34 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(0);
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
-  const [allVideosLoaded, setAllVideosLoaded] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [canStart, setCanStart] = useState<boolean>(false);
+  const totalCount = videos.length;
+  const offset = 5;
+  const totalPages = Math.ceil(totalCount / offset);
+
+  const allVideosLoaded = useMemo(() => {
+    return videos.every((video) => video.loaded);
+  }, [videos]);
 
   useEffect(() => {
     setVideos(generateVideoUrls(videoSources));
   }, []);
+
+  useEffect(() => {
+    if (currentPage < totalPages && !allVideosLoaded) {
+      loadVideos();
+    }
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (allVideosLoaded) {
+      return;
+    }
+    if (currentPage * offset - (currentVideoIndex + 1) === 3) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  }, [currentVideoIndex]);
 
   const loadVideos = async () => {
     if (videos.length === 0) return;
@@ -40,28 +70,35 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const updateProgress = () => {
       loadedCount++;
-      const progress = Math.floor((loadedCount / videos.length) * 100);
+      const progress = Math.floor((loadedCount / (currentPage * offset)) * 100);
       setLoadingProgress(progress);
-
-      if (loadedCount === videos.length) {
-        setAllVideosLoaded(true);
+      if (progress === 100) {
+        setCanStart(true);
       }
     };
 
-    const loadPromises = videos.map((video, index) => {
-      return new Promise<void>((resolve) => {
+    for (
+      let i = (currentPage - 1) * offset;
+      i < (currentPage - 1) * offset + offset;
+      i++
+    ) {
+      const video = videos[i];
+
+      await new Promise<void>((resolve) => {
         const videoElement = document.createElement("video");
         videoElement.preload = "none";
         videoElement.muted = true;
         videoElement.src = video.url;
+        setVideos((prevVideos) =>
+          prevVideos.map((v) =>
+            v.id === video.id ? { ...v, loaded: true } : v
+          )
+        );
         let loaded = false;
 
         const handleLoad = () => {
           if (loaded) return;
           loaded = true;
-          setVideos((prev) =>
-            prev.map((v, i) => (i === index ? { ...v, loaded: true } : v))
-          );
           videoElement.removeEventListener("canplaythrough", handleLoad);
           videoElement.removeEventListener("error", handleLoad);
           updateProgress();
@@ -80,10 +117,9 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         videoElement.load();
         videoElement.remove();
       });
-    });
+    }
 
     try {
-      await Promise.all(loadPromises);
     } catch (error) {
       console.error("Error preloading videos:", error);
     }
@@ -96,6 +132,7 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         currentVideoIndex,
         loadingProgress,
         allVideosLoaded,
+        canStart,
         setCurrentVideoIndex,
         loadVideos,
       }}
