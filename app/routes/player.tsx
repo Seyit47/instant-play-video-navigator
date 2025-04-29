@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useVideo } from "../context/VideoContext";
 import { useNavigate } from "react-router";
 
@@ -55,7 +55,9 @@ const Player: React.FC = () => {
     );
   }
 
-  const currentVideo = videos[currentVideoIndex];
+  const currentVideo = useMemo(() => {
+    return videos[currentVideoIndex];
+  }, [currentVideoIndex, videos]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black">

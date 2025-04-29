@@ -36,7 +36,6 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   const loadVideos = async () => {
     if (videos.length === 0) return;
 
-    const videoElements: HTMLVideoElement[] = [];
     let loadedCount = 0;
 
     const updateProgress = () => {
@@ -64,7 +63,6 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
             prev.map((v, i) => (i === index ? { ...v, loaded: true } : v))
           );
           videoElement.removeEventListener("canplaythrough", handleLoad);
-          videoElement.removeEventListener("loadeddata", handleLoad);
           videoElement.removeEventListener("error", handleLoad);
           updateProgress();
           resolve();
@@ -73,15 +71,14 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         videoElement.addEventListener("canplaythrough", handleLoad, {
           once: true,
         });
-        videoElement.addEventListener("loadeddata", handleLoad, { once: true });
         videoElement.addEventListener("error", () => {
           console.error(`Error loading video ${video.id}`);
           updateProgress();
           resolve();
         });
 
-        videoElements.push(videoElement);
         videoElement.load();
+        videoElement.remove();
       });
     });
 
