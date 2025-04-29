@@ -51,7 +51,7 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
     const loadPromises = videos.map((video, index) => {
       return new Promise<void>((resolve) => {
         const videoElement = document.createElement("video");
-        videoElement.preload = "auto";
+        videoElement.preload = "none";
         videoElement.muted = true;
         videoElement.src = video.url;
         let loaded = false;
@@ -83,7 +83,7 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     try {
-      await Promise.allSettled(loadPromises);
+      await Promise.all(loadPromises);
     } catch (error) {
       console.error("Error preloading videos:", error);
     }
