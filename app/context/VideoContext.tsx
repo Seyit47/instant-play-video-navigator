@@ -54,10 +54,6 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    cleanLoadingVideos();
-    if (allVideosLoaded) {
-      return;
-    }
     if (currentVideoIndex >= lastLoadedIndex) {
       setLastLoadedIndex(currentVideoIndex);
     }
@@ -67,7 +63,6 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [currentVideoIndex]);
 
   function cleanLoadingVideos() {
-    console.log(videoElementsRef.current, currentVideoIndex);
     videoElementsRef.current.forEach((videoEl) => {
       if (videoEl.index !== currentVideoIndex) {
         videoEl.el.pause();
@@ -105,6 +100,11 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     for (let i = start; i < start + end; i++) {
+      if (signal.aborted) {
+        cleanLoadingVideos();
+        setIsLoading(false);
+        break;
+      }
       const video = videos[i];
 
       if (video.loaded) {
@@ -129,7 +129,8 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const handleLoad = () => {
           if (loaded || signal.aborted) {
-            cleanLoadingVideos();
+            videoElement.src = "";
+            videoElement.load();
             return;
           }
           loaded = true;
@@ -156,7 +157,8 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         videoElement.addEventListener("error", handleError);
 
         signal.addEventListener("abort", () => {
-          cleanLoadingVideos();
+          videoElement.src = "";
+          videoElement.load();
           videoElement.removeEventListener("canplaythrough", handleLoad);
           videoElement.removeEventListener("error", handleError);
           reject(new Error("Loading was cancelled"));
