@@ -45,21 +45,24 @@ function isVideoRequest(url) {
 
 // Fetch event
 self.addEventListener("fetch", (event) => {
+  console.log("Video Service Worker: Fetching", event.request.url);
   const url = new URL(event.request.url);
 
   // Only cache video files
   if (isVideoRequest(url)) {
-    console.log("Video Service Worker: Fetching video file", url.pathname);
+    console.log("Video Service Worker: Fetching video file", event.request);
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return cache.match(event.request).then((cachedResponse) => {
+          console.log(cachedResponse);
           if (cachedResponse) {
             console.log("Video Service Worker: Using cached video");
             return cachedResponse;
           }
 
-          return fetch(event.request)
+          return fetch(event.request.url)
             .then((networkResponse) => {
+              console.log(networkResponse);
               if (networkResponse && networkResponse.status === 200) {
                 // Clone the response before putting it in the cache
                 const clonedResponse = networkResponse.clone();
