@@ -15,6 +15,7 @@ interface VideoContextType {
   loadingProgress: number;
   allVideosLoaded: boolean;
   canStart: boolean;
+  isLoading: boolean;
   setCurrentVideoIndex: (index: number) => void;
   loadVideos: () => Promise<void>;
 }
@@ -42,6 +43,7 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   const videoElementsRef = useRef<{ index: number; el: HTMLVideoElement }[]>(
     []
   );
+  const cancelControllerRef = useRef<AbortController | null>(null);
 
   const allVideosLoaded = useMemo(() => {
     return videos.every((video) => video.loaded);
@@ -52,28 +54,44 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
+    cleanLoadingVideos();
     if (allVideosLoaded) {
       return;
     }
-    videoElementsRef.current.forEach((videoEl) => {
-      if (videoEl.index !== currentVideoIndex) {
-        videoEl.el.pause();
-        videoEl.el.src = "";
-        videoEl.el.load();
-      }
-    });
-    videoElementsRef.current = [];
-    console.log(lastLoadedIndex);
+    if (currentVideoIndex >= lastLoadedIndex) {
+      setLastLoadedIndex(currentVideoIndex);
+    }
     if (lastLoadedIndex - currentVideoIndex < 2) {
       loadVideos(lastLoadedIndex, lastLoadedIndex + 3);
     }
   }, [currentVideoIndex]);
 
+  function cleanLoadingVideos() {
+    console.log(videoElementsRef.current, currentVideoIndex);
+    videoElementsRef.current.forEach((videoEl) => {
+      if (videoEl.index !== currentVideoIndex) {
+        videoEl.el.pause();
+        videoEl.el.src = "";
+        videoEl.el.load();
+        videoEl.el.remove();
+      }
+    });
+    videoElementsRef.current = [];
+  }
+
   const loadVideos = async (start = 0, end = 3) => {
     if (videos.length === 0) return;
 
+    if (cancelControllerRef.current) {
+      cleanLoadingVideos();
+      cancelControllerRef.current.abort();
+      cancelControllerRef.current = null;
+    }
+
+    cancelControllerRef.current = new AbortController();
+    const signal = cancelControllerRef.current.signal;
+
     setIsLoading(true);
-    videoElementsRef.current = [];
     let loadedCount = 0;
 
     const updateProgress = () => {
@@ -93,7 +111,13 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         continue;
       }
 
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
+        if (signal.aborted) {
+          cleanLoadingVideos();
+          reject(new Error("Loading was cancelled"));
+          return;
+        }
+
         const videoElement = document.createElement("video");
         videoElement.preload = "auto";
         videoElement.muted = true;
@@ -104,7 +128,10 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         let loaded = false;
 
         const handleLoad = () => {
-          if (loaded) return;
+          if (loaded || signal.aborted) {
+            cleanLoadingVideos();
+            return;
+          }
           loaded = true;
           setVideos((prevVideos) =>
             prevVideos.map((v) =>
@@ -128,6 +155,13 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         videoElement.addEventListener("error", handleError);
 
+        signal.addEventListener("abort", () => {
+          cleanLoadingVideos();
+          videoElement.removeEventListener("canplaythrough", handleLoad);
+          videoElement.removeEventListener("error", handleError);
+          reject(new Error("Loading was cancelled"));
+        });
+
         videoElement.load();
       });
     }
@@ -139,6 +173,7 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
     <VideoContext.Provider
       value={{
         videos,
+        isLoading,
         currentVideoIndex,
         loadingProgress,
         allVideosLoaded,
