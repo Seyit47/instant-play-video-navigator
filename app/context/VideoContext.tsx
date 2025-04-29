@@ -83,7 +83,7 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     try {
-      await Promise.all(loadPromises);
+      await Promise.allSettled(loadPromises);
     } catch (error) {
       console.error("Error preloading videos:", error);
     }
