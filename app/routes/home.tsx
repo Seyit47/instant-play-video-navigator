@@ -3,7 +3,7 @@ import { useVideo } from "../context/VideoContext";
 import { useNavigate } from "react-router";
 
 const Landing: React.FC = () => {
-  const { loadVideos, loadingProgress, allVideosLoaded, canStart } = useVideo();
+  const { loadVideos, loadingProgress, canStart } = useVideo();
   const navigate = useNavigate();
 
   const handleStart = async () => {

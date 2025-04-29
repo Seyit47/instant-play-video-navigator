@@ -3,13 +3,8 @@ import { useVideo } from "../context/VideoContext";
 import { useNavigate } from "react-router";
 
 const Player: React.FC = () => {
-  const {
-    videos,
-    currentVideoIndex,
-    setCurrentVideoIndex,
-    allVideosLoaded,
-    canStart,
-  } = useVideo();
+  const { videos, currentVideoIndex, setCurrentVideoIndex, canStart } =
+    useVideo();
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
 
@@ -65,7 +60,7 @@ const Player: React.FC = () => {
   }, [currentVideoIndex, videos]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black">
+    <div className="flex flex-col px-4 items-center justify-center min-h-screen bg-black">
       <div className="relative w-full max-w-lg">
         <div className="relative pt-[156.35%]">
           <video

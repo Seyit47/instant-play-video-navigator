@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import type { Video } from "../types";
 import { videoSources } from "~/constants";
@@ -34,11 +35,13 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(0);
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [lastLoadedIndex, setLastLoadedIndex] = useState<number>(0);
   const [canStart, setCanStart] = useState<boolean>(false);
-  const totalCount = videos.length;
-  const offset = 5;
-  const totalPages = Math.ceil(totalCount / offset);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const videoElementsRef = useRef<{ index: number; el: HTMLVideoElement }[]>(
+    []
+  );
 
   const allVideosLoaded = useMemo(() => {
     return videos.every((video) => video.loaded);
@@ -49,58 +52,73 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    if (currentPage < totalPages && !allVideosLoaded) {
-      loadVideos();
-    }
-  }, [currentPage]);
-
-  useEffect(() => {
     if (allVideosLoaded) {
       return;
     }
-    if (currentPage * offset - (currentVideoIndex + 1) === 3) {
-      setCurrentPage((prev) => prev + 1);
+    videoElementsRef.current.forEach((videoEl) => {
+      if (videoEl.index !== currentVideoIndex) {
+        videoEl.el.pause();
+        videoEl.el.src = "";
+        videoEl.el.load();
+      }
+    });
+    videoElementsRef.current = [];
+    console.log(lastLoadedIndex);
+    if (lastLoadedIndex - currentVideoIndex < 2) {
+      loadVideos(lastLoadedIndex, lastLoadedIndex + 3);
     }
   }, [currentVideoIndex]);
 
-  const loadVideos = async () => {
+  const loadVideos = async (start = 0, end = 3) => {
     if (videos.length === 0) return;
 
+    setIsLoading(true);
+    videoElementsRef.current = [];
     let loadedCount = 0;
 
     const updateProgress = () => {
       loadedCount++;
-      const progress = Math.floor((loadedCount / (currentPage * offset)) * 100);
+      const progress = Math.floor((loadedCount / (end - start)) * 100);
       setLoadingProgress(progress);
       if (progress === 100) {
         setCanStart(true);
+        setIsLoading(false);
       }
     };
 
-    for (
-      let i = (currentPage - 1) * offset;
-      i < (currentPage - 1) * offset + offset;
-      i++
-    ) {
+    for (let i = start; i < start + end; i++) {
       const video = videos[i];
+
+      if (video.loaded) {
+        continue;
+      }
 
       await new Promise<void>((resolve) => {
         const videoElement = document.createElement("video");
-        videoElement.preload = "none";
+        videoElement.preload = "auto";
         videoElement.muted = true;
         videoElement.src = video.url;
-        setVideos((prevVideos) =>
-          prevVideos.map((v) =>
-            v.id === video.id ? { ...v, loaded: true } : v
-          )
-        );
+
+        videoElementsRef.current.push({ index: i, el: videoElement });
+
         let loaded = false;
 
         const handleLoad = () => {
           if (loaded) return;
           loaded = true;
+          setVideos((prevVideos) =>
+            prevVideos.map((v) =>
+              v.id === video.id ? { ...v, loaded: true } : v
+            )
+          );
           videoElement.removeEventListener("canplaythrough", handleLoad);
           videoElement.removeEventListener("error", handleLoad);
+          updateProgress();
+          resolve();
+        };
+
+        const handleError = () => {
+          console.error(`Error loading video ${video.id}`);
           updateProgress();
           resolve();
         };
@@ -108,21 +126,13 @@ export const VideoProvider: React.FC<{ children: React.ReactNode }> = ({
         videoElement.addEventListener("canplaythrough", handleLoad, {
           once: true,
         });
-        videoElement.addEventListener("error", () => {
-          console.error(`Error loading video ${video.id}`);
-          updateProgress();
-          resolve();
-        });
+        videoElement.addEventListener("error", handleError);
 
         videoElement.load();
-        videoElement.remove();
       });
     }
 
-    try {
-    } catch (error) {
-      console.error("Error preloading videos:", error);
-    }
+    setLastLoadedIndex(end);
   };
 
   return (
