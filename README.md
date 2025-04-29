@@ -87,7 +87,7 @@ The video preloading system:
 1. Creates multiple HTML5 Video elements in memory
 2. Sets them to preload mode
 3. Attaches event listeners to track loading progress
-4. Uses both 'canplaythrough' and 'loadeddata' events for reliable loading detection
+4. Uses 'canplaythrough' event for reliable loading detection
 5. Implements abort capabilities to cancel loading
 
 ### State Management with Context API
